@@ -82,14 +82,20 @@ async function loadTodayExercises() {
             <div class="exercise-item ${exercise.is_completed ? 'completed' : ''}">
                 <input type="checkbox"
                        class="exercise-checkbox"
-                       ${exercise.is_completed ? 'checked' : ''}
-                       onchange="toggleCompletion(${exercise.id}, this.checked)">
+                       data-exercise-id="${exercise.id}"
+                       data-date="today"
+                       ${exercise.is_completed ? 'checked' : ''}>
                 <div class="exercise-info">
                     <div class="exercise-name">${exercise.name}</div>
                     <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps</div>
                 </div>
             </div>
         `).join('');
+
+        // Add event listeners to checkboxes
+        document.querySelectorAll('#todayExercises .exercise-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', handleCheckboxChange);
+        });
     } catch (error) {
         console.error('Error loading today exercises:', error);
         todayExercisesEl.innerHTML = '<div class="empty-state">Error loading exercises</div>';
@@ -133,12 +139,17 @@ async function loadAllExercises() {
                         <div class="exercise-cumulative">Total reps completed: ${totalReps.toLocaleString()}</div>
                     </div>
                     <div class="exercise-actions">
-                        <button class="btn btn-edit" onclick="editExercise(${exercise.id})">Edit</button>
-                        <button class="btn btn-delete" onclick="deleteExercise(${exercise.id})">Delete</button>
+                        <button class="btn btn-edit" data-exercise-id="${exercise.id}" data-action="edit">Edit</button>
+                        <button class="btn btn-delete" data-exercise-id="${exercise.id}" data-action="delete">Delete</button>
                     </div>
                 </div>
             `;
         }).join('');
+
+        // Add event listeners to all exercise action buttons
+        document.querySelectorAll('.exercise-actions button').forEach(button => {
+            button.addEventListener('click', handleExerciseAction);
+        });
     } catch (error) {
         console.error('Error loading all exercises:', error);
         allExercisesEl.innerHTML = '<div class="empty-state">Error loading exercises</div>';
@@ -167,14 +178,20 @@ async function handleDateChange() {
             <div class="exercise-item ${exercise.is_completed ? 'completed' : ''}">
                 <input type="checkbox"
                        class="exercise-checkbox"
-                       ${exercise.is_completed ? 'checked' : ''}
-                       onchange="toggleCompletionForDate(${exercise.id}, '${selectedDate}', this.checked)">
+                       data-exercise-id="${exercise.id}"
+                       data-date="${selectedDate}"
+                       ${exercise.is_completed ? 'checked' : ''}>
                 <div class="exercise-info">
                     <div class="exercise-name">${exercise.name}</div>
                     <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps</div>
                 </div>
             </div>
         `).join('');
+
+        // Add event listeners to checkboxes
+        document.querySelectorAll('#previousDayExercises .exercise-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', handleCheckboxChange);
+        });
     } catch (error) {
         console.error('Error loading previous day exercises:', error);
         previousDayExercisesEl.innerHTML = '<div class="empty-state">Error loading exercises</div>';
@@ -200,15 +217,21 @@ function renderCalendar(calendarData) {
     const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     calendarMonthEl.textContent = monthName;
 
-    const firstDay = date.getDay();
+    // Adjust firstDay to start week on Monday (0=Mon, 1=Tue, ..., 6=Sun)
+    let firstDay = date.getDay();
+    firstDay = (firstDay === 0) ? 6 : firstDay - 1;
+
     const daysInMonth = new Date(currentCalendarYear, currentCalendarMonth, 0).getDate();
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
 
+    // Reorder days to start with Monday
+    const daysShortMonFirst = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
     let html = '<div class="calendar-grid">';
 
     // Day headers
-    daysShort.forEach(day => {
+    daysShortMonFirst.forEach(day => {
         html += `<div class="calendar-day-header">${day}</div>`;
     });
 
@@ -250,6 +273,19 @@ function changeMonth(delta) {
     }
 
     loadCalendar();
+}
+
+// Handle checkbox change for exercise completion
+function handleCheckboxChange(e) {
+    const exerciseId = parseInt(e.target.getAttribute('data-exercise-id'));
+    const dateAttr = e.target.getAttribute('data-date');
+    const completed = e.target.checked;
+
+    if (dateAttr === 'today') {
+        toggleCompletion(exerciseId, completed);
+    } else {
+        toggleCompletionForDate(exerciseId, dateAttr, completed);
+    }
 }
 
 // Toggle exercise completion
@@ -308,6 +344,18 @@ async function toggleCompletionForDate(exerciseId, date, completed) {
     }
 }
 
+// Handle exercise action buttons (edit/delete)
+function handleExerciseAction(e) {
+    const exerciseId = parseInt(e.target.getAttribute('data-exercise-id'));
+    const action = e.target.getAttribute('data-action');
+
+    if (action === 'edit') {
+        editExercise(exerciseId);
+    } else if (action === 'delete') {
+        deleteExercise(exerciseId);
+    }
+}
+
 // Open add modal
 function openAddModal() {
     currentEditingId = null;
@@ -324,7 +372,7 @@ async function editExercise(id) {
     try {
         const response = await fetch(`${API_URL}?action=get_exercises`);
         const exercises = await response.json();
-        const exercise = exercises.find(e => e.id === id);
+        const exercise = exercises.find(e => e.id == id);
 
         if (exercise) {
             document.getElementById('exerciseName').value = exercise.name;
