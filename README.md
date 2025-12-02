@@ -1,6 +1,8 @@
 # Workout Tracker
 
 A simple web-based workout tracker for home exercises with automatic progression.
+<img width="928" height="1270" alt="workout_tracker" src="https://github.com/user-attachments/assets/c2e8c5e5-0799-485a-b518-8ad42df68d74" />
+
 
 ## Features
 
@@ -11,6 +13,8 @@ A simple web-based workout tracker for home exercises with automatic progression
 - Full CRUD operations for exercise management
 - Workout history tracking
 - No authentication required
+  
+<img width="804" height="569" alt="excercise_settings" src="https://github.com/user-attachments/assets/065e4eae-5821-4f1b-a594-cf43a41e0b74" />
 
 ## Requirements
 
