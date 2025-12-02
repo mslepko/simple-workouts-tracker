@@ -49,6 +49,10 @@ switch ($action) {
         getCalendarData($conn);
         break;
 
+    case 'get_streaks':
+        getStreaks($conn);
+        break;
+
     default:
         echo json_encode(['error' => 'Invalid action']);
         break;
@@ -275,4 +279,65 @@ function getCalendarData($conn) {
     }
 
     echo json_encode($calendar);
+}
+
+// Calculate current streaks for all exercises
+function getStreaks($conn) {
+    // Get all exercises
+    $sql = "SELECT id, name, days_of_week FROM exercises ORDER BY name";
+    $result = $conn->query($sql);
+
+    $streaks = [];
+    $today = date('Y-m-d');
+
+    while ($exercise = $result->fetch_assoc()) {
+        $exerciseId = $exercise['id'];
+        $scheduledDays = array_map('intval', explode(',', $exercise['days_of_week']));
+
+        // Calculate streak for this exercise
+        $streak = 0;
+        $checkDate = $today;
+        $lookbackDays = 0;
+        $maxLookback = 365; // Don't look back more than a year
+
+        while ($lookbackDays < $maxLookback) {
+            $dayOfWeek = intval(date('w', strtotime($checkDate)));
+
+            // Check if this day is scheduled for this exercise
+            if (in_array($dayOfWeek, $scheduledDays)) {
+                // Check if it's a future date
+                if ($checkDate > $today) {
+                    // Don't check future dates
+                    break;
+                }
+
+                // Check if exercise was completed on this date
+                $checkSql = "SELECT id FROM workout_log WHERE exercise_id = ? AND completed_date = ?";
+                $stmt = $conn->prepare($checkSql);
+                $stmt->bind_param('is', $exerciseId, $checkDate);
+                $stmt->execute();
+                $checkResult = $stmt->get_result();
+
+                if ($checkResult->num_rows > 0) {
+                    // Exercise was completed, increment streak
+                    $streak++;
+                } else {
+                    // Exercise was not completed on a scheduled day, streak ends
+                    break;
+                }
+            }
+
+            // Move to previous day
+            $checkDate = date('Y-m-d', strtotime($checkDate . ' -1 day'));
+            $lookbackDays++;
+        }
+
+        $streaks[] = [
+            'exercise_id' => $exerciseId,
+            'name' => $exercise['name'],
+            'current_streak' => $streak
+        ];
+    }
+
+    echo json_encode($streaks);
 }

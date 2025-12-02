@@ -287,6 +287,29 @@ h2 {
     margin-top: 3px;
 }
 
+/* Streak Badge */
+.streak-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-left: 10px;
+    box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
 /* Calendar */
 .calendar-header {
     display: flex;

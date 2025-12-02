@@ -70,27 +70,45 @@ function displayTodayDate() {
 // Load today's exercises
 async function loadTodayExercises() {
     try {
-        const response = await fetch(`${API_URL}?action=get_today_exercises`);
-        const exercises = await response.json();
+        const [exercisesResponse, streaksResponse] = await Promise.all([
+            fetch(`${API_URL}?action=get_today_exercises`),
+            fetch(`${API_URL}?action=get_streaks`)
+        ]);
+
+        const exercises = await exercisesResponse.json();
+        const streaks = await streaksResponse.json();
+
+        // Create streaks lookup
+        const streaksLookup = {};
+        streaks.forEach(streak => {
+            streaksLookup[streak.exercise_id] = streak.current_streak;
+        });
 
         if (exercises.length === 0) {
             todayExercisesEl.innerHTML = '<div class="empty-state">No exercises scheduled for today</div>';
             return;
         }
 
-        todayExercisesEl.innerHTML = exercises.map(exercise => `
-            <div class="exercise-item ${exercise.is_completed ? 'completed' : ''}">
-                <input type="checkbox"
-                       class="exercise-checkbox"
-                       data-exercise-id="${exercise.id}"
-                       data-date="today"
-                       ${exercise.is_completed ? 'checked' : ''}>
-                <div class="exercise-info">
-                    <div class="exercise-name">${exercise.name}</div>
-                    <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps</div>
+        todayExercisesEl.innerHTML = exercises.map(exercise => {
+            const streak = streaksLookup[exercise.id] || 0;
+
+            return `
+                <div class="exercise-item ${exercise.is_completed ? 'completed' : ''}">
+                    <input type="checkbox"
+                           class="exercise-checkbox"
+                           data-exercise-id="${exercise.id}"
+                           data-date="today"
+                           ${exercise.is_completed ? 'checked' : ''}>
+                    <div class="exercise-info">
+                        <div class="exercise-name">
+                            ${exercise.name}
+                            ${streak > 0 ? `<span class="streak-badge" title="Current streak">${streak} 🔥</span>` : ''}
+                        </div>
+                        <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps</div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         // Add event listeners to checkboxes
         document.querySelectorAll('#todayExercises .exercise-checkbox').forEach(checkbox => {
@@ -105,19 +123,27 @@ async function loadTodayExercises() {
 // Load all exercises for management
 async function loadAllExercises() {
     try {
-        // Load exercises and cumulative stats in parallel
-        const [exercisesResponse, statsResponse] = await Promise.all([
+        // Load exercises, cumulative stats, and streaks in parallel
+        const [exercisesResponse, statsResponse, streaksResponse] = await Promise.all([
             fetch(`${API_URL}?action=get_exercises`),
-            fetch(`${API_URL}?action=get_cumulative_stats`)
+            fetch(`${API_URL}?action=get_cumulative_stats`),
+            fetch(`${API_URL}?action=get_streaks`)
         ]);
 
         const exercises = await exercisesResponse.json();
         const stats = await statsResponse.json();
+        const streaks = await streaksResponse.json();
 
         // Create stats lookup
         cumulativeStats = {};
         stats.forEach(stat => {
             cumulativeStats[stat.id] = stat;
+        });
+
+        // Create streaks lookup
+        const streaksLookup = {};
+        streaks.forEach(streak => {
+            streaksLookup[streak.exercise_id] = streak.current_streak;
         });
 
         if (exercises.length === 0) {
@@ -129,11 +155,15 @@ async function loadAllExercises() {
             const days = exercise.days_of_week.split(',').map(d => daysShort[parseInt(d)]).join(', ');
             const stat = cumulativeStats[exercise.id] || { total_workouts: 0, total_reps: 0 };
             const totalReps = stat.total_reps || 0;
+            const streak = streaksLookup[exercise.id] || 0;
 
             return `
                 <div class="exercise-item manage-item">
                     <div class="exercise-info">
-                        <div class="exercise-name">${exercise.name}</div>
+                        <div class="exercise-name">
+                            ${exercise.name}
+                            ${streak > 0 ? `<span class="streak-badge" title="Current streak">${streak} 🔥</span>` : ''}
+                        </div>
                         <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps (+${exercise.increment_value} on Mondays)</div>
                         <div class="exercise-days">${days}</div>
                         <div class="exercise-cumulative">Total reps completed: ${totalReps.toLocaleString()}</div>
