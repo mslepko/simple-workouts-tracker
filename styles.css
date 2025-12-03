@@ -270,15 +270,6 @@ h2 {
     margin-top: 20px;
 }
 
-/* Previous Days Section */
-.date-picker {
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-    cursor: pointer;
-}
-
 /* Cumulative Stats */
 .exercise-cumulative {
     font-size: 0.85rem;
@@ -349,9 +340,36 @@ h2 {
     transition: all 0.2s;
 }
 
+.calendar-day.clickable {
+    cursor: pointer;
+}
+
+.calendar-day.clickable:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    border-color: #3498db;
+}
+
 .calendar-day.empty {
     border: none;
     background: transparent;
+    cursor: default;
+}
+
+.calendar-day.empty:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.calendar-day.future {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.calendar-day.future:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #e0e0e0;
 }
 
 .calendar-day.today {
@@ -430,6 +448,19 @@ h2 {
     text-align: center;
     padding: 30px;
     color: #7f8c8d;
+}
+
+/* Edit Day Modal */
+.edit-day-content {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.edit-day-content .exercise-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 /* Responsive */

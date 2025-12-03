@@ -37,17 +37,6 @@
             </div>
         </section>
 
-        <!-- Previous Days Section -->
-        <section class="previous-days-section">
-            <div class="section-header">
-                <h2>Mark Previous Day</h2>
-                <input type="date" id="previousDate" class="date-picker">
-            </div>
-            <div id="previousDayExercises" class="exercise-list">
-                <!-- Previous day exercises will be loaded here -->
-            </div>
-        </section>
-
         <!-- Manage Exercises Section -->
         <section class="manage-section">
             <div class="section-header">
@@ -110,6 +99,19 @@
                         <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Edit Day Workout Modal -->
+        <div id="editDayModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="editDayModalTitle">Edit Workout</h2>
+                    <span class="close" id="closeEditDay">&times;</span>
+                </div>
+                <div id="editDayContent" class="edit-day-content">
+                    <!-- Exercises for selected day will be loaded here -->
+                </div>
             </div>
         </div>
     </div>

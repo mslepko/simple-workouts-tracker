@@ -5,8 +5,6 @@ const API_URL = 'api.php';
 const todayDateEl = document.getElementById('todayDate');
 const todayExercisesEl = document.getElementById('todayExercises');
 const allExercisesEl = document.getElementById('allExercises');
-const previousDateEl = document.getElementById('previousDate');
-const previousDayExercisesEl = document.getElementById('previousDayExercises');
 const calendarEl = document.getElementById('calendar');
 const calendarMonthEl = document.getElementById('calendarMonth');
 const prevMonthBtn = document.getElementById('prevMonth');
@@ -17,6 +15,10 @@ const addExerciseBtn = document.getElementById('addExerciseBtn');
 const closeModal = document.querySelector('.close');
 const cancelBtn = document.getElementById('cancelBtn');
 const modalTitle = document.getElementById('modalTitle');
+const editDayModal = document.getElementById('editDayModal');
+const editDayModalTitle = document.getElementById('editDayModalTitle');
+const editDayContent = document.getElementById('editDayContent');
+const closeEditDay = document.getElementById('closeEditDay');
 
 // Days of week
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -44,13 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
     closeModal.addEventListener('click', closeExerciseModal);
     cancelBtn.addEventListener('click', closeExerciseModal);
     exerciseForm.addEventListener('submit', handleFormSubmit);
-    previousDateEl.addEventListener('change', handleDateChange);
+    closeEditDay.addEventListener('click', closeEditDayModal);
     prevMonthBtn.addEventListener('click', () => changeMonth(-1));
     nextMonthBtn.addEventListener('click', () => changeMonth(1));
 
     window.addEventListener('click', (e) => {
         if (e.target === exerciseModal) {
             closeExerciseModal();
+        }
+        if (e.target === editDayModal) {
+            closeEditDayModal();
         }
     });
 });
@@ -186,46 +191,56 @@ async function loadAllExercises() {
     }
 }
 
-// Handle previous date change
-async function handleDateChange() {
-    const selectedDate = previousDateEl.value;
-
-    if (!selectedDate) {
-        previousDayExercisesEl.innerHTML = '<div class="empty-state">Select a date to view exercises</div>';
-        return;
-    }
-
+// Open edit day modal
+async function openEditDayModal(dateStr) {
     try {
-        const response = await fetch(`${API_URL}?action=get_date_exercises&date=${selectedDate}`);
+        const response = await fetch(`${API_URL}?action=get_date_exercises&date=${dateStr}`);
         const exercises = await response.json();
 
+        const date = new Date(dateStr + 'T00:00:00');
+        const dayName = daysOfWeek[date.getDay()];
+        const dateFormatted = date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        editDayModalTitle.textContent = `${dayName}, ${dateFormatted}`;
+
         if (exercises.length === 0) {
-            previousDayExercisesEl.innerHTML = '<div class="empty-state">No exercises scheduled for this day</div>';
-            return;
+            editDayContent.innerHTML = '<div class="empty-state">No exercises scheduled for this day</div>';
+        } else {
+            editDayContent.innerHTML = exercises.map(exercise => `
+                <div class="exercise-item ${exercise.is_completed ? 'completed' : ''}">
+                    <input type="checkbox"
+                           class="exercise-checkbox"
+                           data-exercise-id="${exercise.id}"
+                           data-date="${dateStr}"
+                           ${exercise.is_completed ? 'checked' : ''}>
+                    <div class="exercise-info">
+                        <div class="exercise-name">${exercise.name}</div>
+                        <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Add event listeners to checkboxes
+            document.querySelectorAll('#editDayContent .exercise-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', handleCheckboxChange);
+            });
         }
 
-        previousDayExercisesEl.innerHTML = exercises.map(exercise => `
-            <div class="exercise-item ${exercise.is_completed ? 'completed' : ''}">
-                <input type="checkbox"
-                       class="exercise-checkbox"
-                       data-exercise-id="${exercise.id}"
-                       data-date="${selectedDate}"
-                       ${exercise.is_completed ? 'checked' : ''}>
-                <div class="exercise-info">
-                    <div class="exercise-name">${exercise.name}</div>
-                    <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps</div>
-                </div>
-            </div>
-        `).join('');
-
-        // Add event listeners to checkboxes
-        document.querySelectorAll('#previousDayExercises .exercise-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', handleCheckboxChange);
-        });
+        editDayModal.classList.add('active');
     } catch (error) {
-        console.error('Error loading previous day exercises:', error);
-        previousDayExercisesEl.innerHTML = '<div class="empty-state">Error loading exercises</div>';
+        console.error('Error loading day exercises:', error);
+        editDayContent.innerHTML = '<div class="empty-state">Error loading exercises</div>';
     }
+}
+
+// Close edit day modal
+function closeEditDayModal() {
+    editDayModal.classList.remove('active');
+    editDayContent.innerHTML = '';
 }
 
 // Load calendar for current month
@@ -275,12 +290,15 @@ function renderCalendar(calendarData) {
         const dateStr = `${currentCalendarYear}-${String(currentCalendarMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const hasWorkout = calendarData[dateStr] > 0;
         const isToday = dateStr === todayStr;
+        const isFuture = dateStr > todayStr;
 
         let classes = 'calendar-day';
+        if (!isFuture) classes += ' clickable';
         if (hasWorkout) classes += ' has-workout';
         if (isToday) classes += ' today';
+        if (isFuture) classes += ' future';
 
-        html += `<div class="${classes}">
+        html += `<div class="${classes}" data-date="${dateStr}">
             <span class="day-number">${day}</span>
             ${hasWorkout ? `<span class="workout-indicator">${calendarData[dateStr]}</span>` : ''}
         </div>`;
@@ -288,6 +306,14 @@ function renderCalendar(calendarData) {
 
     html += '</div>';
     calendarEl.innerHTML = html;
+
+    // Add click event listeners to calendar days (only past and today)
+    document.querySelectorAll('.calendar-day.clickable').forEach(dayEl => {
+        dayEl.addEventListener('click', () => {
+            const dateStr = dayEl.getAttribute('data-date');
+            openEditDayModal(dateStr);
+        });
+    });
 }
 
 // Change calendar month
@@ -365,7 +391,7 @@ async function toggleCompletionForDate(exerciseId, date, completed) {
         const result = await response.json();
 
         if (result.success) {
-            handleDateChange();
+            openEditDayModal(date);
             loadAllExercises();
             loadCalendar();
         }
