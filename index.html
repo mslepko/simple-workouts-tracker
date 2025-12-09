@@ -64,10 +64,26 @@
                         <input type="text" id="exerciseName" required>
                     </div>
 
+                    <div class="form-group">
+                        <label>Value Type</label>
+                        <div class="value-type-selector">
+                            <label><input type="radio" name="valueType" value="reps" checked> Reps</label>
+                            <label><input type="radio" name="valueType" value="time"> Time</label>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="exerciseReps">Reps</label>
+                            <label for="exerciseReps" id="exerciseRepsLabel">Reps</label>
                             <input type="number" id="exerciseReps" min="1" required>
+                        </div>
+
+                        <div class="form-group" id="timeUnitGroup" style="display: none;">
+                            <label for="timeUnit">Time Unit</label>
+                            <select id="timeUnit">
+                                <option value="seconds">Seconds</option>
+                                <option value="minutes">Minutes</option>
+                            </select>
                         </div>
 
                         <div class="form-group">

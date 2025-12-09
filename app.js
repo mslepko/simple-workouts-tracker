@@ -50,6 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
     prevMonthBtn.addEventListener('click', () => changeMonth(-1));
     nextMonthBtn.addEventListener('click', () => changeMonth(1));
 
+    // Value type change listener
+    document.querySelectorAll('input[name="valueType"]').forEach(radio => {
+        radio.addEventListener('change', handleValueTypeChange);
+    });
+
     window.addEventListener('click', (e) => {
         if (e.target === exerciseModal) {
             closeExerciseModal();
@@ -59,6 +64,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// Handle value type change
+function handleValueTypeChange(e) {
+    const valueType = e.target.value;
+    const timeUnitGroup = document.getElementById('timeUnitGroup');
+    const repsLabel = document.getElementById('exerciseRepsLabel');
+
+    if (valueType === 'time') {
+        timeUnitGroup.style.display = 'block';
+        repsLabel.textContent = 'Time';
+    } else {
+        timeUnitGroup.style.display = 'none';
+        repsLabel.textContent = 'Reps';
+    }
+}
+
+// Get display text for exercise value
+function getValueDisplay(exercise) {
+    if (exercise.value_type === 'time') {
+        return `${exercise.reps} ${exercise.time_unit}`;
+    }
+    return `${exercise.reps} reps`;
+}
 
 // Display today's date
 function displayTodayDate() {
@@ -96,6 +124,7 @@ async function loadTodayExercises() {
 
         todayExercisesEl.innerHTML = exercises.map(exercise => {
             const streak = streaksLookup[exercise.id] || 0;
+            const valueDisplay = getValueDisplay(exercise);
 
             return `
                 <div class="exercise-item ${exercise.is_completed ? 'completed' : ''}">
@@ -109,7 +138,7 @@ async function loadTodayExercises() {
                             ${exercise.name}
                             ${streak > 0 ? `<span class="streak-badge" title="Current streak">${streak} 🔥</span>` : ''}
                         </div>
-                        <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps</div>
+                        <div class="exercise-details">${exercise.sets} sets × ${valueDisplay}</div>
                     </div>
                 </div>
             `;
@@ -161,6 +190,8 @@ async function loadAllExercises() {
             const stat = cumulativeStats[exercise.id] || { total_workouts: 0, total_reps: 0 };
             const totalReps = stat.total_reps || 0;
             const streak = streaksLookup[exercise.id] || 0;
+            const valueDisplay = getValueDisplay(exercise);
+            const valueLabel = exercise.value_type === 'time' ? 'time' : 'reps';
 
             return `
                 <div class="exercise-item manage-item">
@@ -169,9 +200,9 @@ async function loadAllExercises() {
                             ${exercise.name}
                             ${streak > 0 ? `<span class="streak-badge" title="Current streak">${streak} 🔥</span>` : ''}
                         </div>
-                        <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps (+${exercise.increment_value} on Mondays)</div>
+                        <div class="exercise-details">${exercise.sets} sets × ${valueDisplay} (+${exercise.increment_value} on Mondays)</div>
                         <div class="exercise-days">${days}</div>
-                        <div class="exercise-cumulative">Total reps completed: ${totalReps.toLocaleString()}</div>
+                        <div class="exercise-cumulative">Total ${valueLabel} completed: ${totalReps.toLocaleString()}</div>
                     </div>
                     <div class="exercise-actions">
                         <button class="btn btn-edit" data-exercise-id="${exercise.id}" data-action="edit">Edit</button>
@@ -210,19 +241,22 @@ async function openEditDayModal(dateStr) {
         if (exercises.length === 0) {
             editDayContent.innerHTML = '<div class="empty-state">No exercises scheduled for this day</div>';
         } else {
-            editDayContent.innerHTML = exercises.map(exercise => `
-                <div class="exercise-item ${exercise.is_completed ? 'completed' : ''}">
-                    <input type="checkbox"
-                           class="exercise-checkbox"
-                           data-exercise-id="${exercise.id}"
-                           data-date="${dateStr}"
-                           ${exercise.is_completed ? 'checked' : ''}>
-                    <div class="exercise-info">
-                        <div class="exercise-name">${exercise.name}</div>
-                        <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps</div>
+            editDayContent.innerHTML = exercises.map(exercise => {
+                const valueDisplay = getValueDisplay(exercise);
+                return `
+                    <div class="exercise-item ${exercise.is_completed ? 'completed' : ''}">
+                        <input type="checkbox"
+                               class="exercise-checkbox"
+                               data-exercise-id="${exercise.id}"
+                               data-date="${dateStr}"
+                               ${exercise.is_completed ? 'checked' : ''}>
+                        <div class="exercise-info">
+                            <div class="exercise-name">${exercise.name}</div>
+                            <div class="exercise-details">${exercise.sets} sets × ${valueDisplay}</div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             // Add event listeners to checkboxes
             document.querySelectorAll('#editDayContent .exercise-checkbox').forEach(checkbox => {
@@ -436,6 +470,26 @@ async function editExercise(id) {
             document.getElementById('exerciseSets').value = exercise.sets;
             document.getElementById('exerciseIncrement').value = exercise.increment_value;
 
+            // Set value type
+            const valueType = exercise.value_type || 'reps';
+            document.querySelector(`input[name="valueType"][value="${valueType}"]`).checked = true;
+
+            // Set time unit if applicable
+            if (exercise.time_unit) {
+                document.getElementById('timeUnit').value = exercise.time_unit;
+            }
+
+            // Show/hide time unit group based on value type
+            const timeUnitGroup = document.getElementById('timeUnitGroup');
+            const repsLabel = document.getElementById('exerciseRepsLabel');
+            if (valueType === 'time') {
+                timeUnitGroup.style.display = 'block';
+                repsLabel.textContent = 'Time';
+            } else {
+                timeUnitGroup.style.display = 'none';
+                repsLabel.textContent = 'Reps';
+            }
+
             // Set checkboxes
             const days = exercise.days_of_week.split(',');
             document.querySelectorAll('input[name="day"]').forEach(checkbox => {
@@ -486,6 +540,8 @@ async function handleFormSubmit(e) {
     const reps = parseInt(document.getElementById('exerciseReps').value);
     const sets = parseInt(document.getElementById('exerciseSets').value);
     const increment = parseInt(document.getElementById('exerciseIncrement').value);
+    const valueType = document.querySelector('input[name="valueType"]:checked').value;
+    const timeUnit = document.getElementById('timeUnit').value;
 
     const days = [];
     document.querySelectorAll('input[name="day"]:checked').forEach(checkbox => {
@@ -502,7 +558,9 @@ async function handleFormSubmit(e) {
         reps,
         sets,
         days,
-        increment_value: increment
+        increment_value: increment,
+        value_type: valueType,
+        time_unit: timeUnit
     };
 
     try {

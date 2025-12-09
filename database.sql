@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS exercises (
     sets INT NOT NULL,
     days_of_week VARCHAR(50) NOT NULL COMMENT 'Comma-separated: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat',
     increment_value INT NOT NULL DEFAULT 1 COMMENT 'Amount to increase reps by on Monday',
+    value_type ENUM('reps', 'time') DEFAULT 'reps' COMMENT 'Whether the exercise is measured in reps or time',
+    time_unit ENUM('seconds', 'minutes') DEFAULT 'seconds' COMMENT 'Time unit when value_type is time',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -28,3 +30,8 @@ CREATE TABLE IF NOT EXISTS workout_log (
 -- Index for faster queries
 CREATE INDEX idx_completed_date ON workout_log(completed_date);
 CREATE INDEX idx_exercise_id ON workout_log(exercise_id);
+
+-- Migration: Add value_type and time_unit columns if they don't exist
+ALTER TABLE exercises
+ADD COLUMN IF NOT EXISTS value_type ENUM('reps', 'time') DEFAULT 'reps' COMMENT 'Whether the exercise is measured in reps or time',
+ADD COLUMN IF NOT EXISTS time_unit ENUM('seconds', 'minutes') DEFAULT 'seconds' COMMENT 'Time unit when value_type is time';

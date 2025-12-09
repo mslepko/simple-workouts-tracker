@@ -107,10 +107,12 @@ function addExercise($conn) {
     $sets = $data['sets'];
     $days = implode(',', $data['days']);
     $increment = $data['increment_value'];
+    $valueType = isset($data['value_type']) ? $data['value_type'] : 'reps';
+    $timeUnit = isset($data['time_unit']) ? $data['time_unit'] : 'seconds';
 
-    $sql = "INSERT INTO exercises (name, reps, sets, days_of_week, increment_value) VALUES (?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO exercises (name, reps, sets, days_of_week, increment_value, value_type, time_unit) VALUES (?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('siisi', $name, $reps, $sets, $days, $increment);
+    $stmt->bind_param('siisiss', $name, $reps, $sets, $days, $increment, $valueType, $timeUnit);
 
     if ($stmt->execute()) {
         echo json_encode(['success' => true, 'id' => $conn->insert_id]);
@@ -129,10 +131,12 @@ function updateExercise($conn) {
     $sets = $data['sets'];
     $days = implode(',', $data['days']);
     $increment = $data['increment_value'];
+    $valueType = isset($data['value_type']) ? $data['value_type'] : 'reps';
+    $timeUnit = isset($data['time_unit']) ? $data['time_unit'] : 'seconds';
 
-    $sql = "UPDATE exercises SET name=?, reps=?, sets=?, days_of_week=?, increment_value=? WHERE id=?";
+    $sql = "UPDATE exercises SET name=?, reps=?, sets=?, days_of_week=?, increment_value=?, value_type=?, time_unit=? WHERE id=?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('siisii', $name, $reps, $sets, $days, $increment, $id);
+    $stmt->bind_param('siisissi', $name, $reps, $sets, $days, $increment, $valueType, $timeUnit, $id);
 
     if ($stmt->execute()) {
         echo json_encode(['success' => true]);
