@@ -88,6 +88,24 @@ function getValueDisplay(exercise) {
     return `${exercise.reps} reps`;
 }
 
+// Format seconds to human readable time
+function formatTime(seconds) {
+    if (seconds < 60) {
+        return `${seconds}s`;
+    }
+
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+
+    let result = [];
+    if (hours > 0) result.push(`${hours}h`);
+    if (minutes > 0) result.push(`${minutes}m`);
+    if (remainingSeconds > 0) result.push(`${remainingSeconds}s`);
+
+    return result.join(' ');
+}
+
 // Display today's date
 function displayTodayDate() {
     const today = new Date();
@@ -192,6 +210,7 @@ async function loadAllExercises() {
             const streak = streaksLookup[exercise.id] || 0;
             const valueDisplay = getValueDisplay(exercise);
             const valueLabel = exercise.value_type === 'time' ? 'time' : 'reps';
+            const totalDisplay = exercise.value_type === 'time' ? formatTime(totalReps) : totalReps.toLocaleString();
 
             return `
                 <div class="exercise-item manage-item">
@@ -202,7 +221,7 @@ async function loadAllExercises() {
                         </div>
                         <div class="exercise-details">${exercise.sets} sets × ${valueDisplay} (+${exercise.increment_value} on Mondays)</div>
                         <div class="exercise-days">${days}</div>
-                        <div class="exercise-cumulative">Total ${valueLabel} completed: ${totalReps.toLocaleString()}</div>
+                        <div class="exercise-cumulative">Total ${valueLabel} completed: ${totalDisplay}</div>
                     </div>
                     <div class="exercise-actions">
                         <button class="btn btn-edit" data-exercise-id="${exercise.id}" data-action="edit">Edit</button>
