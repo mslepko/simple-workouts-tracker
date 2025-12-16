@@ -110,12 +110,13 @@ function addExercise($conn) {
     $sets = $data['sets'];
     $days = implode(',', $data['days']);
     $increment = $data['increment_value'];
+    $limitValue = isset($data['limit_value']) && $data['limit_value'] !== '' ? intval($data['limit_value']) : null;
     $valueType = isset($data['value_type']) ? $data['value_type'] : 'reps';
     $timeUnit = isset($data['time_unit']) ? $data['time_unit'] : 'seconds';
 
-    $sql = "INSERT INTO exercises (name, reps, sets, days_of_week, increment_value, value_type, time_unit) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO exercises (name, reps, sets, days_of_week, increment_value, limit_value, value_type, time_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('siisiss', $name, $reps, $sets, $days, $increment, $valueType, $timeUnit);
+    $stmt->bind_param('siisiiss', $name, $reps, $sets, $days, $increment, $limitValue, $valueType, $timeUnit);
 
     if ($stmt->execute()) {
         echo json_encode(['success' => true, 'id' => $conn->insert_id]);
@@ -134,12 +135,13 @@ function updateExercise($conn) {
     $sets = $data['sets'];
     $days = implode(',', $data['days']);
     $increment = $data['increment_value'];
+    $limitValue = isset($data['limit_value']) && $data['limit_value'] !== '' ? intval($data['limit_value']) : null;
     $valueType = isset($data['value_type']) ? $data['value_type'] : 'reps';
     $timeUnit = isset($data['time_unit']) ? $data['time_unit'] : 'seconds';
 
-    $sql = "UPDATE exercises SET name=?, reps=?, sets=?, days_of_week=?, increment_value=?, value_type=?, time_unit=? WHERE id=?";
+    $sql = "UPDATE exercises SET name=?, reps=?, sets=?, days_of_week=?, increment_value=?, limit_value=?, value_type=?, time_unit=? WHERE id=?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('siisissi', $name, $reps, $sets, $days, $increment, $valueType, $timeUnit, $id);
+    $stmt->bind_param('siisiissi', $name, $reps, $sets, $days, $increment, $limitValue, $valueType, $timeUnit, $id);
 
     if ($stmt->execute()) {
         echo json_encode(['success' => true]);

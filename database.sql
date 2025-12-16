@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS exercises (
     sets INT NOT NULL,
     days_of_week VARCHAR(50) NOT NULL COMMENT 'Comma-separated: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat',
     increment_value INT NOT NULL DEFAULT 1 COMMENT 'Amount to increase reps by on Monday',
+    limit_value INT DEFAULT NULL COMMENT 'Maximum reps/time limit - increment stops when reached',
     value_type ENUM('reps', 'time') DEFAULT 'reps' COMMENT 'Whether the exercise is measured in reps or time',
     time_unit ENUM('seconds', 'minutes') DEFAULT 'seconds' COMMENT 'Time unit when value_type is time',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -44,3 +45,7 @@ ALTER TABLE workout_log
 ADD COLUMN IF NOT EXISTS completed_reps INT DEFAULT NULL COMMENT 'Actual reps completed (for rep-based exercises)',
 ADD COLUMN IF NOT EXISTS completed_sets INT DEFAULT NULL COMMENT 'Actual sets completed',
 ADD COLUMN IF NOT EXISTS completed_time INT DEFAULT NULL COMMENT 'Actual time completed in seconds (for time-based exercises)';
+
+-- Migration: Add limit_value column to exercises table if it doesn't exist
+ALTER TABLE exercises
+ADD COLUMN IF NOT EXISTS limit_value INT DEFAULT NULL COMMENT 'Maximum reps/time limit - increment stops when reached' AFTER increment_value;

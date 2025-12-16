@@ -90,10 +90,18 @@
                             <label for="exerciseSets">Sets</label>
                             <input type="number" id="exerciseSets" min="1" required>
                         </div>
+                    </div>
 
+                    <div class="form-row">
                         <div class="form-group">
                             <label for="exerciseIncrement">Monday Increment</label>
                             <input type="number" id="exerciseIncrement" min="0" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="exerciseLimit">Limit (optional)</label>
+                            <input type="number" id="exerciseLimit" min="1" placeholder="No limit">
+                            <small class="form-help">Maximum value - increment stops when reached</small>
                         </div>
                     </div>
 

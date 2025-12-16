@@ -566,6 +566,7 @@ async function editExercise(id) {
             document.getElementById('exerciseReps').value = exercise.reps;
             document.getElementById('exerciseSets').value = exercise.sets;
             document.getElementById('exerciseIncrement').value = exercise.increment_value;
+            document.getElementById('exerciseLimit').value = exercise.limit_value || '';
 
             // Set value type
             const valueType = exercise.value_type || 'reps';
@@ -637,6 +638,7 @@ async function handleFormSubmit(e) {
     const reps = parseInt(document.getElementById('exerciseReps').value);
     const sets = parseInt(document.getElementById('exerciseSets').value);
     const increment = parseInt(document.getElementById('exerciseIncrement').value);
+    const limitValue = document.getElementById('exerciseLimit').value;
     const valueType = document.querySelector('input[name="valueType"]:checked').value;
     const timeUnit = document.getElementById('timeUnit').value;
 
@@ -656,6 +658,7 @@ async function handleFormSubmit(e) {
         sets,
         days,
         increment_value: increment,
+        limit_value: limitValue,
         value_type: valueType,
         time_unit: timeUnit
     };

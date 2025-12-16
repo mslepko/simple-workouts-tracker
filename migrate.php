@@ -46,6 +46,25 @@ if ($result2->num_rows > 0) {
     }
 }
 
+// Migration 3: Check if limit_value column exists in exercises table
+$checkSql3 = "SHOW COLUMNS FROM exercises LIKE 'limit_value'";
+$result3 = $conn->query($checkSql3);
+
+if ($result3->num_rows > 0) {
+    echo "✓ limit_value column already exists in exercises table.\n";
+} else {
+    // Add the limit_value column
+    $sql3 = "ALTER TABLE exercises
+            ADD COLUMN limit_value INT DEFAULT NULL COMMENT 'Maximum reps/time limit - increment stops when reached' AFTER increment_value";
+
+    if ($conn->query($sql3) === TRUE) {
+        echo "✓ Successfully added limit_value column to exercises table.\n";
+        echo "✓ Exercises can now have a maximum limit for automatic increments.\n";
+    } else {
+        echo "✗ Error adding column: " . $conn->error . "\n";
+    }
+}
+
 $conn->close();
 
 echo "\nMigration complete!\n";
