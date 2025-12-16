@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS workout_log (
     exercise_id INT NOT NULL,
     completed_date DATE NOT NULL,
     completed TINYINT(1) DEFAULT 1,
+    completed_reps INT DEFAULT NULL COMMENT 'Actual reps completed (for rep-based exercises)',
+    completed_sets INT DEFAULT NULL COMMENT 'Actual sets completed',
+    completed_time INT DEFAULT NULL COMMENT 'Actual time completed in seconds (for time-based exercises)',
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE,
     UNIQUE KEY unique_completion (exercise_id, completed_date)
@@ -35,3 +38,9 @@ CREATE INDEX idx_exercise_id ON workout_log(exercise_id);
 ALTER TABLE exercises
 ADD COLUMN IF NOT EXISTS value_type ENUM('reps', 'time') DEFAULT 'reps' COMMENT 'Whether the exercise is measured in reps or time',
 ADD COLUMN IF NOT EXISTS time_unit ENUM('seconds', 'minutes') DEFAULT 'seconds' COMMENT 'Time unit when value_type is time';
+
+-- Migration: Add completed reps/sets/time tracking columns if they don't exist
+ALTER TABLE workout_log
+ADD COLUMN IF NOT EXISTS completed_reps INT DEFAULT NULL COMMENT 'Actual reps completed (for rep-based exercises)',
+ADD COLUMN IF NOT EXISTS completed_sets INT DEFAULT NULL COMMENT 'Actual sets completed',
+ADD COLUMN IF NOT EXISTS completed_time INT DEFAULT NULL COMMENT 'Actual time completed in seconds (for time-based exercises)';

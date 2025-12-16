@@ -79,7 +79,10 @@ function getTodayExercises($conn) {
     $todayDate = date('Y-m-d');
 
     $sql = "SELECT e.*,
-                   CASE WHEN wl.completed IS NOT NULL THEN 1 ELSE 0 END as is_completed
+                   CASE WHEN wl.completed IS NOT NULL THEN 1 ELSE 0 END as is_completed,
+                   wl.completed_reps,
+                   wl.completed_sets,
+                   wl.completed_time
             FROM exercises e
             LEFT JOIN workout_log wl ON e.id = wl.exercise_id AND wl.completed_date = ?
             WHERE FIND_IN_SET(?, e.days_of_week) > 0
@@ -167,14 +170,18 @@ function toggleCompletion($conn) {
     $exerciseId = $data['exercise_id'];
     $date = $data['date'];
     $completed = $data['completed'];
+    $completedReps = isset($data['completed_reps']) ? $data['completed_reps'] : null;
+    $completedSets = isset($data['completed_sets']) ? $data['completed_sets'] : null;
+    $completedTime = isset($data['completed_time']) ? $data['completed_time'] : null;
 
     if ($completed) {
-        // Mark as completed
-        $sql = "INSERT INTO workout_log (exercise_id, completed_date, completed)
-                VALUES (?, ?, 1)
-                ON DUPLICATE KEY UPDATE completed = 1";
+        // Mark as completed with actual values
+        $sql = "INSERT INTO workout_log (exercise_id, completed_date, completed, completed_reps, completed_sets, completed_time)
+                VALUES (?, ?, 1, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE completed = 1, completed_reps = VALUES(completed_reps),
+                completed_sets = VALUES(completed_sets), completed_time = VALUES(completed_time)";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param('is', $exerciseId, $date);
+        $stmt->bind_param('isiii', $exerciseId, $date, $completedReps, $completedSets, $completedTime);
     } else {
         // Mark as not completed (remove from log)
         $sql = "DELETE FROM workout_log WHERE exercise_id=? AND completed_date=?";
@@ -218,7 +225,10 @@ function getDateExercises($conn) {
     $dayOfWeek = date('w', strtotime($date));
 
     $sql = "SELECT e.*,
-                   CASE WHEN wl.completed IS NOT NULL THEN 1 ELSE 0 END as is_completed
+                   CASE WHEN wl.completed IS NOT NULL THEN 1 ELSE 0 END as is_completed,
+                   wl.completed_reps,
+                   wl.completed_sets,
+                   wl.completed_time
             FROM exercises e
             LEFT JOIN workout_log wl ON e.id = wl.exercise_id AND wl.completed_date = ?
             WHERE FIND_IN_SET(?, e.days_of_week) > 0

@@ -143,6 +143,12 @@ async function loadTodayExercises() {
         todayExercisesEl.innerHTML = exercises.map(exercise => {
             const streak = streaksLookup[exercise.id] || 0;
             const valueDisplay = getValueDisplay(exercise);
+            const exerciseDataJson = JSON.stringify({
+                sets: exercise.sets,
+                reps: exercise.reps,
+                value_type: exercise.value_type,
+                time_unit: exercise.time_unit
+            }).replace(/"/g, '&quot;');
 
             return `
                 <div class="exercise-item ${exercise.is_completed ? 'completed' : ''}">
@@ -150,6 +156,7 @@ async function loadTodayExercises() {
                            class="exercise-checkbox"
                            data-exercise-id="${exercise.id}"
                            data-date="today"
+                           data-exercise="${exerciseDataJson}"
                            ${exercise.is_completed ? 'checked' : ''}>
                     <div class="exercise-info">
                         <div class="exercise-name">
@@ -261,17 +268,49 @@ async function openEditDayModal(dateStr) {
             editDayContent.innerHTML = '<div class="empty-state">No exercises scheduled for this day</div>';
         } else {
             editDayContent.innerHTML = exercises.map(exercise => {
-                const valueDisplay = getValueDisplay(exercise);
+                // Use completed values if they exist, otherwise use current planned values
+                const displaySets = exercise.completed_sets || exercise.sets;
+                let displayReps, displayValueType;
+
+                if (exercise.completed_reps !== null && exercise.completed_reps !== undefined) {
+                    // Rep-based exercise that was completed
+                    displayReps = exercise.completed_reps;
+                    displayValueType = 'reps';
+                } else if (exercise.completed_time !== null && exercise.completed_time !== undefined) {
+                    // Time-based exercise that was completed
+                    displayReps = exercise.completed_time;
+                    displayValueType = 'time';
+                } else {
+                    // Not completed yet, use current planned values
+                    displayReps = exercise.reps;
+                    displayValueType = exercise.value_type;
+                }
+
+                let valueDisplay;
+                if (displayValueType === 'time') {
+                    valueDisplay = formatTime(displayReps);
+                } else {
+                    valueDisplay = `${displayReps} reps`;
+                }
+
+                const exerciseDataJson = JSON.stringify({
+                    sets: exercise.sets,
+                    reps: exercise.reps,
+                    value_type: exercise.value_type,
+                    time_unit: exercise.time_unit
+                }).replace(/"/g, '&quot;');
+
                 return `
                     <div class="exercise-item ${exercise.is_completed ? 'completed' : ''}">
                         <input type="checkbox"
                                class="exercise-checkbox"
                                data-exercise-id="${exercise.id}"
                                data-date="${dateStr}"
+                               data-exercise="${exerciseDataJson}"
                                ${exercise.is_completed ? 'checked' : ''}>
                         <div class="exercise-info">
                             <div class="exercise-name">${exercise.name}</div>
-                            <div class="exercise-details">${exercise.sets} sets × ${valueDisplay}</div>
+                            <div class="exercise-details">${displaySets} sets × ${valueDisplay}</div>
                         </div>
                     </div>
                 `;
@@ -389,29 +428,49 @@ function handleCheckboxChange(e) {
     const exerciseId = parseInt(e.target.getAttribute('data-exercise-id'));
     const dateAttr = e.target.getAttribute('data-date');
     const completed = e.target.checked;
+    const exerciseData = e.target.getAttribute('data-exercise');
 
     if (dateAttr === 'today') {
-        toggleCompletion(exerciseId, completed);
+        toggleCompletion(exerciseId, completed, exerciseData);
     } else {
-        toggleCompletionForDate(exerciseId, dateAttr, completed);
+        toggleCompletionForDate(exerciseId, dateAttr, completed, exerciseData);
     }
 }
 
 // Toggle exercise completion
-async function toggleCompletion(exerciseId, completed) {
+async function toggleCompletion(exerciseId, completed, exerciseDataJson) {
     const today = new Date().toISOString().split('T')[0];
 
     try {
+        const requestBody = {
+            exercise_id: exerciseId,
+            date: today,
+            completed: completed
+        };
+
+        // If completing and we have exercise data, include the actual values
+        if (completed && exerciseDataJson) {
+            const exercise = JSON.parse(exerciseDataJson);
+            requestBody.completed_sets = exercise.sets;
+
+            if (exercise.value_type === 'time') {
+                // Convert time to seconds based on time_unit
+                let timeInSeconds = exercise.reps;
+                if (exercise.time_unit === 'minutes') {
+                    timeInSeconds = exercise.reps * 60;
+                }
+                requestBody.completed_time = timeInSeconds;
+            } else {
+                requestBody.completed_reps = exercise.reps;
+            }
+        }
+
         const response = await fetch(`${API_URL}?action=toggle_completion`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                exercise_id: exerciseId,
-                date: today,
-                completed: completed
-            })
+            body: JSON.stringify(requestBody)
         });
 
         const result = await response.json();
@@ -427,18 +486,37 @@ async function toggleCompletion(exerciseId, completed) {
 }
 
 // Toggle exercise completion for a specific date
-async function toggleCompletionForDate(exerciseId, date, completed) {
+async function toggleCompletionForDate(exerciseId, date, completed, exerciseDataJson) {
     try {
+        const requestBody = {
+            exercise_id: exerciseId,
+            date: date,
+            completed: completed
+        };
+
+        // If completing and we have exercise data, include the actual values
+        if (completed && exerciseDataJson) {
+            const exercise = JSON.parse(exerciseDataJson);
+            requestBody.completed_sets = exercise.sets;
+
+            if (exercise.value_type === 'time') {
+                // Convert time to seconds based on time_unit
+                let timeInSeconds = exercise.reps;
+                if (exercise.time_unit === 'minutes') {
+                    timeInSeconds = exercise.reps * 60;
+                }
+                requestBody.completed_time = timeInSeconds;
+            } else {
+                requestBody.completed_reps = exercise.reps;
+            }
+        }
+
         const response = await fetch(`${API_URL}?action=toggle_completion`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                exercise_id: exerciseId,
-                date: date,
-                completed: completed
-            })
+            body: JSON.stringify(requestBody)
         });
 
         const result = await response.json();
