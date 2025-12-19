@@ -65,6 +65,25 @@ if ($result3->num_rows > 0) {
     }
 }
 
+// Migration 4: Check if is_paused column exists in exercises table
+$checkSql4 = "SHOW COLUMNS FROM exercises LIKE 'is_paused'";
+$result4 = $conn->query($checkSql4);
+
+if ($result4->num_rows > 0) {
+    echo "✓ is_paused column already exists in exercises table.\n";
+} else {
+    // Add the is_paused column
+    $sql4 = "ALTER TABLE exercises
+            ADD COLUMN is_paused TINYINT(1) DEFAULT 0 COMMENT 'Whether the exercise is paused' AFTER time_unit";
+
+    if ($conn->query($sql4) === TRUE) {
+        echo "✓ Successfully added is_paused column to exercises table.\n";
+        echo "✓ Exercises can now be paused to hide from today's workout and skip cron updates.\n";
+    } else {
+        echo "✗ Error adding column: " . $conn->error . "\n";
+    }
+}
+
 $conn->close();
 
 echo "\nMigration complete!\n";

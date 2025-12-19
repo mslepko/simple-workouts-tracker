@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS exercises (
     limit_value INT DEFAULT NULL COMMENT 'Maximum reps/time limit - increment stops when reached',
     value_type ENUM('reps', 'time') DEFAULT 'reps' COMMENT 'Whether the exercise is measured in reps or time',
     time_unit ENUM('seconds', 'minutes') DEFAULT 'seconds' COMMENT 'Time unit when value_type is time',
+    is_paused TINYINT(1) DEFAULT 0 COMMENT 'Whether the exercise is paused',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -49,3 +50,7 @@ ADD COLUMN IF NOT EXISTS completed_time INT DEFAULT NULL COMMENT 'Actual time co
 -- Migration: Add limit_value column to exercises table if it doesn't exist
 ALTER TABLE exercises
 ADD COLUMN IF NOT EXISTS limit_value INT DEFAULT NULL COMMENT 'Maximum reps/time limit - increment stops when reached' AFTER increment_value;
+
+-- Migration: Add is_paused column to exercises table if it doesn't exist
+ALTER TABLE exercises
+ADD COLUMN IF NOT EXISTS is_paused TINYINT(1) DEFAULT 0 COMMENT 'Whether the exercise is paused' AFTER time_unit;

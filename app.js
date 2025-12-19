@@ -218,19 +218,24 @@ async function loadAllExercises() {
             const valueDisplay = getValueDisplay(exercise);
             const valueLabel = exercise.value_type === 'time' ? 'time' : 'reps';
             const totalDisplay = exercise.value_type === 'time' ? formatTime(totalReps) : totalReps.toLocaleString();
+            const isPaused = exercise.is_paused == 1;
+            const pauseButtonText = isPaused ? 'Resume' : 'Pause';
+            const pauseButtonClass = isPaused ? 'btn-resume' : 'btn-pause';
 
             return `
-                <div class="exercise-item manage-item">
+                <div class="exercise-item manage-item ${isPaused ? 'paused' : ''}">
                     <div class="exercise-info">
                         <div class="exercise-name">
                             ${exercise.name}
-                            ${streak > 0 ? `<span class="streak-badge" title="Current streak">${streak} 🔥</span>` : ''}
+                            ${isPaused ? '<span class="pause-badge">PAUSED</span>' : ''}
+                            ${streak > 0 && !isPaused ? `<span class="streak-badge" title="Current streak">${streak} 🔥</span>` : ''}
                         </div>
                         <div class="exercise-details">${exercise.sets} sets × ${valueDisplay} (+${exercise.increment_value} on Mondays)</div>
                         <div class="exercise-days">${days}</div>
                         <div class="exercise-cumulative">Total ${valueLabel} completed: ${totalDisplay}</div>
                     </div>
                     <div class="exercise-actions">
+                        <button class="btn ${pauseButtonClass}" data-exercise-id="${exercise.id}" data-action="pause">${pauseButtonText}</button>
                         <button class="btn btn-edit" data-exercise-id="${exercise.id}" data-action="edit">Edit</button>
                         <button class="btn btn-delete" data-exercise-id="${exercise.id}" data-action="delete">Delete</button>
                     </div>
@@ -531,7 +536,7 @@ async function toggleCompletionForDate(exerciseId, date, completed, exerciseData
     }
 }
 
-// Handle exercise action buttons (edit/delete)
+// Handle exercise action buttons (edit/delete/pause)
 function handleExerciseAction(e) {
     const exerciseId = parseInt(e.target.getAttribute('data-exercise-id'));
     const action = e.target.getAttribute('data-action');
@@ -540,6 +545,8 @@ function handleExerciseAction(e) {
         editExercise(exerciseId);
     } else if (action === 'delete') {
         deleteExercise(exerciseId);
+    } else if (action === 'pause') {
+        togglePauseExercise(exerciseId);
     }
 }
 
@@ -620,6 +627,44 @@ async function deleteExercise(id) {
         }
     } catch (error) {
         console.error('Error deleting exercise:', error);
+    }
+}
+
+// Toggle pause status for exercise
+async function togglePauseExercise(id) {
+    try {
+        // Get current exercises to find the current pause status
+        const exercisesResponse = await fetch(`${API_URL}?action=get_exercises`);
+        const exercises = await exercisesResponse.json();
+        const exercise = exercises.find(e => e.id == id);
+
+        if (!exercise) {
+            console.error('Exercise not found');
+            return;
+        }
+
+        const newPauseStatus = exercise.is_paused == 1 ? 0 : 1;
+
+        const response = await fetch(`${API_URL}?action=toggle_pause`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                exercise_id: id,
+                is_paused: newPauseStatus
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            loadAllExercises();
+            loadTodayExercises();
+            loadCalendar();
+        }
+    } catch (error) {
+        console.error('Error toggling pause status:', error);
     }
 }
 

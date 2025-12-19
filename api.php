@@ -53,6 +53,10 @@ switch ($action) {
         getStreaks($conn);
         break;
 
+    case 'toggle_pause':
+        togglePause($conn);
+        break;
+
     default:
         echo json_encode(['error' => 'Invalid action']);
         break;
@@ -85,7 +89,7 @@ function getTodayExercises($conn) {
                    wl.completed_time
             FROM exercises e
             LEFT JOIN workout_log wl ON e.id = wl.exercise_id AND wl.completed_date = ?
-            WHERE FIND_IN_SET(?, e.days_of_week) > 0
+            WHERE FIND_IN_SET(?, e.days_of_week) > 0 AND e.is_paused = 0
             ORDER BY e.name";
 
     $stmt = $conn->prepare($sql);
@@ -233,7 +237,7 @@ function getDateExercises($conn) {
                    wl.completed_time
             FROM exercises e
             LEFT JOIN workout_log wl ON e.id = wl.exercise_id AND wl.completed_date = ?
-            WHERE FIND_IN_SET(?, e.days_of_week) > 0
+            WHERE FIND_IN_SET(?, e.days_of_week) > 0 AND e.is_paused = 0
             ORDER BY e.name";
 
     $stmt = $conn->prepare($sql);
@@ -356,4 +360,26 @@ function getStreaks($conn) {
     }
 
     echo json_encode($streaks);
+}
+
+// Toggle exercise pause status
+function togglePause($conn) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $exerciseId = isset($data['exercise_id']) ? intval($data['exercise_id']) : 0;
+    $isPaused = isset($data['is_paused']) ? intval($data['is_paused']) : 0;
+
+    if ($exerciseId <= 0) {
+        echo json_encode(['error' => 'Invalid exercise ID']);
+        return;
+    }
+
+    $sql = "UPDATE exercises SET is_paused = ? WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('ii', $isPaused, $exerciseId);
+
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['error' => 'Failed to update pause status']);
+    }
 }

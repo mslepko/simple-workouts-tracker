@@ -29,8 +29,8 @@ if ($currentHour >= 6) {
 // Connect to database
 $conn = getDBConnection();
 
-// Get all exercises
-$sql = "SELECT id, name, reps, increment_value, limit_value FROM exercises WHERE increment_value > 0";
+// Get all exercises that are not paused
+$sql = "SELECT id, name, reps, increment_value, limit_value FROM exercises WHERE increment_value > 0 AND is_paused = 0";
 $result = $conn->query($sql);
 
 $updatedCount = 0;
